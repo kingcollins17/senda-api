@@ -1,4 +1,6 @@
-from fastapi import APIRouter
+from typing import Any, Dict
+from fastapi import APIRouter, HTTPException, status
+from app.quotes.services import BillQuoteService, QuoteValidationError
 
 router = APIRouter(
     prefix="/api/v1/bills",
@@ -14,8 +16,23 @@ async def verify_bill():
     return {"message": "Not implemented"}
 
 @router.post("/quote")
-async def quote_bill():
-    return {"message": "Not implemented"}
+async def quote_bill(payload: Dict[str, Any]):
+    """
+    Generate a price quote for a bill payment (airtime, data, electricity, TV).
+    """
+    try:
+        service = BillQuoteService()
+        return service.get_quote(payload)
+    except QuoteValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
 
 @router.post("/orders")
 async def create_bill_order():

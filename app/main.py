@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,10 +14,28 @@ from app.notifications.router import router as notifications_router
 from app.webhooks.router import router as webhooks_router
 from app.onramp.router import router as onramp_router
 
+# Import all models so SQLModel metadata registers them
+import app.core.models  # noqa: F401
+from app.core.database import create_db_and_tables
+
+
+from app.core.events import bus
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Create database tables and enter event bus context on startup."""
+    await create_db_and_tables()
+    async with bus:
+        yield
+
+
+
 app = FastAPI(
     title="Senda API",
     description="Backend API for Senda, orchestrating payments and crypto-to-fiat settlement.",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan,
 )
 
 # CORS middleware
