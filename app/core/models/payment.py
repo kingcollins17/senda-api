@@ -16,7 +16,7 @@ class Payment(TimestampMixin, SQLModel, table=True):
     id: str = Field(default_factory=generate_uuid, primary_key=True)
     user_id: str = Field(foreign_key="users.id", nullable=False, index=True)
     quote_id: Optional[str] = Field(default=None, foreign_key="quotes.id")
-    recipient_id: Optional[str] = Field(default=None, foreign_key="recipients.id")
+    recipient_id: Optional[str] = Field(default=None)
 
     type: PaymentType = Field(nullable=False)
     status: PaymentStatus = Field(default=PaymentStatus.CREATED)

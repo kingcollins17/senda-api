@@ -1,25 +1,32 @@
+import asyncio
 import json
 import unittest
-from app.quotes.services import (
-    BaseQuoteService,
-    BankTransferQuoteService,
-    BillQuoteService,
-    QuoteServiceFactory,
-    QuoteValidationError,
-)
+from fastapi.testclient import TestClient
+from sqlmodel import SQLModel
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.pool import StaticPool
+
+from app.main import app
+from app.core.database import get_session
+from app.core.dependencies import get_user
+from app.core.models.enums import AuthProvider, UserStatus
+from app.core.models.user import User
+from app.quotes.quote_service import QuoteServiceImpl, QuoteValidationError
 
 
 class TestQuoteService(unittest.TestCase):
 
-    def test_base_quote_service_cannot_be_instantiated(self):
-        """Verify that BaseQuoteService is an abstract base class."""
-        with self.assertRaises(TypeError):
-            # pyrefly: ignore [bad-instantiation]
-            BaseQuoteService()
+    def setUp(self):
+        self.service = QuoteServiceImpl()
+
+    def test_quote_service_instantiation(self):
+        """Verify that QuoteServiceImpl can be instantiated and initialized."""
+        self.assertIsInstance(self.service, QuoteServiceImpl)
+        self.assertEqual(self.service.default_rate, 1500.0)
 
     def test_bank_transfer_quote_with_dict(self):
         """Test generating a bank transfer quote using a Python dictionary."""
-        service = BankTransferQuoteService()
         request_data = {
             "amount_ngn": 50000,
             "network": "SOLANA",
@@ -32,7 +39,7 @@ class TestQuoteService(unittest.TestCase):
             },
         }
 
-        quote = service.get_quote(request_data)
+        quote = self.service.get_quote(request_data)
 
         # Required top-level fields
         self.assertIn("wallet_address", quote)
@@ -64,7 +71,6 @@ class TestQuoteService(unittest.TestCase):
 
     def test_bank_transfer_quote_with_flat_keys_and_json_str(self):
         """Test bank transfer quote with flat recipient keys and JSON string input."""
-        service = BankTransferQuoteService()
         json_payload = json.dumps({
             "amount_ngn": 15000,
             "network": "POLYGON",
@@ -75,7 +81,7 @@ class TestQuoteService(unittest.TestCase):
             "account_name": "Chidinma Eze",
         })
 
-        quote = service.get_quote(json_payload)
+        quote = self.service.get_quote(json_payload)
 
         self.assertEqual(quote["network"], "POLYGON")
         self.assertEqual(quote["recipient"]["account_number"], "0098765432")
@@ -85,23 +91,21 @@ class TestQuoteService(unittest.TestCase):
 
     def test_bank_transfer_validation_errors(self):
         """Test validation errors for bank transfer quote requests."""
-        service = BankTransferQuoteService()
-
         # Missing amount_ngn
         with self.assertRaises(QuoteValidationError):
-            service.get_quote({"network": "SOLANA"})
+            self.service.get_quote({"network": "SOLANA"})
 
         # Negative amount
         with self.assertRaises(QuoteValidationError):
-            service.get_quote({"amount_ngn": -100})
+            self.service.get_quote({"amount_ngn": -100})
 
-        # Missing bank info
+        # Missing bank info when type is BANK_TRANSFER
         with self.assertRaises(QuoteValidationError):
-            service.get_quote({"amount_ngn": 10000})
+            self.service.get_quote({"amount_ngn": 10000, "payment_type": "BANK_TRANSFER", "recipient": {}})
 
         # Invalid account number (not 10 digits)
         with self.assertRaises(QuoteValidationError):
-            service.get_quote({
+            self.service.get_quote({
                 "amount_ngn": 10000,
                 "recipient": {
                     "account_number": "12345",
@@ -113,7 +117,6 @@ class TestQuoteService(unittest.TestCase):
 
     def test_bill_quote_airtime(self):
         """Test generating a bill quote for airtime."""
-        service = BillQuoteService()
         payload = {
             "amount_ngn": 2000,
             "network": "ETHEREUM",
@@ -123,7 +126,7 @@ class TestQuoteService(unittest.TestCase):
             "biller_name": "MTN",
         }
 
-        quote = service.get_quote(payload)
+        quote = self.service.get_quote(payload)
 
         self.assertEqual(quote["payment_type"], "AIRTIME")
         self.assertEqual(quote["network"], "ETHEREUM")
@@ -132,47 +135,30 @@ class TestQuoteService(unittest.TestCase):
         self.assertEqual(quote["bill_details"]["customer_id"], "08031234567")
         self.assertEqual(quote["bill_details"]["biller_name"], "MTN")
 
+    def test_bill_quote_with_plan_id(self):
+        """Test generating a bill quote by plan_id auto-populates price and metadata."""
+        payload = {
+            "plan_id": "mtn-daily-1gb",
+            "customer_id": "08031234567",
+            "network": "SOLANA",
+        }
+
+        quote = self.service.get_quote(payload)
+
+        self.assertEqual(quote["payment_type"], "DATA")
+        self.assertEqual(quote["fiat_amount"], 350.0)  # MTN 1GB daily is 350 NGN
+        self.assertEqual(quote["bill_details"]["plan_id"], "mtn-daily-1gb")
+        self.assertEqual(quote["bill_details"]["plan_name"], "MTN 1GB Daily Plan")
+        self.assertEqual(quote["bill_details"]["customer_id"], "08031234567")
+
     def test_bill_quote_electricity_validation(self):
-        """Test validation errors for bill quotes."""
-        service = BillQuoteService()
-
-        # Missing category
+        """Test customer_id validation for bill quotes."""
+        # Missing customer_id for electricity
         with self.assertRaises(QuoteValidationError):
-            service.get_quote({"amount_ngn": 5000})
-
-        # Invalid category
-        with self.assertRaises(QuoteValidationError):
-            service.get_quote({"amount_ngn": 5000, "category": "STREAMING"})
-
-        # Missing customer_id
-        with self.assertRaises(QuoteValidationError):
-            service.get_quote({"amount_ngn": 5000, "category": "ELECTRICITY"})
-
-    def test_quote_service_factory(self):
-        """Test QuoteServiceFactory instantiates correct service classes."""
-        transfer_service = QuoteServiceFactory.create("BANK_TRANSFER")
-        self.assertIsInstance(transfer_service, BankTransferQuoteService)
-
-        bill_service = QuoteServiceFactory.create("AIRTIME")
-        self.assertIsInstance(bill_service, BillQuoteService)
-
-        with self.assertRaises(ValueError):
-            QuoteServiceFactory.create("UNSUPPORTED_TYPE")
+            self.service.get_quote({"amount_ngn": 5000, "category": "ELECTRICITY"})
 
     def test_api_quotes_endpoint_bank_transfer(self):
         """Test POST /api/v1/quotes for bank transfer."""
-        import asyncio
-        from fastapi.testclient import TestClient
-        from sqlmodel import SQLModel
-        from sqlalchemy.ext.asyncio import create_async_engine
-        from sqlmodel.ext.asyncio.session import AsyncSession
-        from sqlalchemy.pool import StaticPool
-        from app.main import app
-        from app.core.database import get_session
-        from app.core.dependencies import get_user
-        from app.core.models.user import User
-        from app.core.models.enums import UserStatus, AuthProvider
-
         test_engine = create_async_engine(
             "sqlite+aiosqlite:///:memory:",
             connect_args={"check_same_thread": False},
@@ -226,10 +212,58 @@ class TestQuoteService(unittest.TestCase):
             app.dependency_overrides.pop(get_session, None)
             app.dependency_overrides.pop(get_user, None)
 
+    def test_api_quotes_bill_plan_endpoint(self):
+        """Test POST /api/v1/quotes/bill/plan/{plan_id} for a data plan."""
+        test_engine = create_async_engine(
+            "sqlite+aiosqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+
+        async def init_db():
+            async with test_engine.begin() as conn:
+                await conn.run_sync(SQLModel.metadata.create_all)
+
+        asyncio.run(init_db())
+
+        mock_user = User(
+            id="test-user-uuid-plan",
+            email="plan@example.com",
+            name="Plan User",
+            status=UserStatus.ACTIVE,
+            auth_provider=AuthProvider.NORMAL,
+            email_verified=True,
+        )
+
+        async def override_get_session():
+            async with AsyncSession(test_engine, expire_on_commit=False) as session:
+                yield session
+
+        async def override_get_user():
+            return mock_user
+
+        app.dependency_overrides[get_session] = override_get_session
+        app.dependency_overrides[get_user] = override_get_user
+
+        try:
+            client = TestClient(app)
+            res = client.post("/api/v1/quotes/bill/plan/mtn-daily-1gb", json={
+                "customer_id": "08012345678",
+                "network": "POLYGON",
+            })
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertEqual(data["payment_type"], "DATA")
+            self.assertEqual(data["fiat_amount"], 350.0)
+            self.assertEqual(data["bill_details"]["plan_id"], "mtn-daily-1gb")
+            self.assertEqual(data["bill_details"]["customer_id"], "08012345678")
+        finally:
+            app.dependency_overrides.pop(get_session, None)
+            app.dependency_overrides.pop(get_user, None)
+
     def test_api_bills_quote_endpoint(self):
         """Test POST /api/v1/bills/quote for electricity."""
         from fastapi.testclient import TestClient
-        from app.main import app
 
         client = TestClient(app)
         res = client.post("/api/v1/bills/quote", json={

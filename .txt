@@ -1,2 +1,3 @@
   "email": "colen@yopmail.com",
   "password": "Password123#",
+  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmMDZiMWQwNS05MGYwLTQ2NjgtYWIzMS03YmQ5OTgyOTFjZjkiLCJlbWFpbCI6ImNvbGVuQHlvcG1haWwuY29tIiwiZXhwIjoxNzkxODExNzg5LCJpYXQiOjE3OTE4MDk5ODksInR5cGUiOiJhY2Nlc3MifQ.YEM-4BJbo-H6hp9-nZ3JZvmdplQBN9fQ695o1E1KUBI

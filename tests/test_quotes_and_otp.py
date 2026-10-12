@@ -13,14 +13,16 @@ from app.core.models.enums import AuthProvider, Network, UserStatus
 from app.core.models.quote import Quote
 from app.core.models.user import User
 from app.quotes.dependencies import (
+    get_quote_service,
     get_ts,
     get_bs,
     get_transfer_service,
     get_bill_service,
+    quote_service,
     transfer_service,
     bill_service,
 )
-from app.quotes.services import BankTransferQuoteService, BillQuoteService
+from app.quotes.quote_service import QuoteServiceImpl
 
 test_engine = create_async_engine(
     "sqlite+aiosqlite:///:memory:",
@@ -56,21 +58,25 @@ class TestQuotesAndOtp(unittest.IsolatedAsyncioTestCase):
     # =========================================================================
 
     def test_quote_dependency_providers(self):
-        """Verify get_ts, get_bs, get_transfer_service, and get_bill_service return proper instances."""
+        """Verify get_quote_service, get_ts, get_bs, get_transfer_service, and get_bill_service return QuoteServiceImpl instances."""
+        qs = get_quote_service()
+        self.assertIsInstance(qs, QuoteServiceImpl)
+
         ts = get_ts()
-        self.assertIsInstance(ts, BankTransferQuoteService)
+        self.assertIsInstance(ts, QuoteServiceImpl)
 
         bs = get_bs()
-        self.assertIsInstance(bs, BillQuoteService)
+        self.assertIsInstance(bs, QuoteServiceImpl)
 
         ts_full = get_transfer_service()
-        self.assertIsInstance(ts_full, BankTransferQuoteService)
+        self.assertIsInstance(ts_full, QuoteServiceImpl)
 
         bs_full = get_bill_service()
-        self.assertIsInstance(bs_full, BillQuoteService)
+        self.assertIsInstance(bs_full, QuoteServiceImpl)
 
-        self.assertEqual(transfer_service, get_transfer_service)
-        self.assertEqual(bill_service, get_bill_service)
+        self.assertEqual(quote_service, get_quote_service)
+        self.assertEqual(transfer_service, get_quote_service)
+        self.assertEqual(bill_service, get_quote_service)
 
     # =========================================================================
     # Quotes Split Endpoints & Authorization Tests

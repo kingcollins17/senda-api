@@ -11,6 +11,43 @@ class MockBillProvider(BillProvider):
         }
 
     def get_products(self, category: str) -> List[Dict[str, Any]]:
+        category_upper = category.upper()
+        if category_upper == "DATA":
+            from app.bills.mock_data import DATA_PLANS
+            return [
+                {
+                    "id": p["id"],
+                    "name": p["name"],
+                    "price": p["price_ngn"],
+                    "provider": p["provider"],
+                    "duration": p["duration"],
+                    "data_amount": p["data_amount"],
+                }
+                for p in DATA_PLANS
+            ]
+        elif category_upper == "TV":
+            from app.bills.mock_data import TV_PLANS
+            return [
+                {
+                    "id": p["id"],
+                    "name": p["name"],
+                    "price": p["price_ngn"],
+                    "provider": p["provider"],
+                    "duration": p["duration"],
+                }
+                for p in TV_PLANS
+            ]
+        elif category_upper == "BETTING":
+            from app.bills.mock_data import BETTING_PROVIDERS
+            return [
+                {
+                    "id": p["id"],
+                    "name": p["name"],
+                    "provider": p["provider"],
+                    "category": p["category"],
+                }
+                for p in BETTING_PROVIDERS
+            ]
         return [
             {
                 "id": "prod_1",

@@ -26,6 +26,7 @@ class PaymentType(str, enum.Enum):
     DATA = "DATA"
     ELECTRICITY = "ELECTRICITY"
     TV = "TV"
+    BETTING = "BETTING"
 
 
 class PaymentStatus(str, enum.Enum):
@@ -41,15 +42,13 @@ class PaymentStatus(str, enum.Enum):
     EXPIRED = "EXPIRED"
 
 
-class RecipientType(str, enum.Enum):
-    BANK_ACCOUNT = "BANK_ACCOUNT"
-
 
 class BillCategory(str, enum.Enum):
     AIRTIME = "AIRTIME"
     DATA = "DATA"
     ELECTRICITY = "ELECTRICITY"
     TV = "TV"
+    BETTING = "BETTING"
 
 
 class BillOrderStatus(str, enum.Enum):
@@ -76,6 +75,7 @@ class TransactionType(str, enum.Enum):
     DATA = "DATA"
     ELECTRICITY = "ELECTRICITY"
     TV = "TV"
+    BETTING = "BETTING"
     ONRAMP = "ONRAMP"
     OFFRAMP = "OFFRAMP"
 

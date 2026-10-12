@@ -23,7 +23,7 @@ class Quote(TimestampMixin, SQLModel, table=True):
     platform_fee: float = Field(default=0.0)
     provider_fee: float = Field(default=0.0)
 
-    recipient_id: Optional[str] = Field(default=None, foreign_key="recipients.id")
+    recipient_id: Optional[str] = Field(default=None)
 
     expires_at: NaiveDatetime = Field(nullable=False)
     is_expired: bool = Field(default=False)

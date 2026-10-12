@@ -3,7 +3,6 @@
 from .enums import AuthProvider
 from .user import User
 from .wallet import Wallet, WalletAccount
-from .recipient import Recipient
 from .quote import Quote
 from .payment import Payment, PaymentAttempt
 from .bill import BillOrder
@@ -17,7 +16,6 @@ __all__ = [
     "User",
     "Wallet",
     "WalletAccount",
-    "Recipient",
     "Quote",
     "Payment",
     "PaymentAttempt",

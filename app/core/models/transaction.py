@@ -30,7 +30,7 @@ class Transaction(TimestampMixin, SQLModel, table=True):
     onramp_order_id: Optional[str] = Field(default=None, foreign_key="onramp_orders.id")
 
     # Recipient info (for bank transfers)
-    recipient_id: Optional[str] = Field(default=None, foreign_key="recipients.id")
+    recipient_id: Optional[str] = Field(default=None)
 
     # Provider / blockchain metadata
     provider_reference: Optional[str] = Field(default=None)
