@@ -1,5 +1,6 @@
-from typing import Optional
-from sqlmodel import SQLModel, Field
+from typing import Any, Dict, Optional
+from sqlmodel import SQLModel, Field, Column
+import sqlalchemy as sa
 from .base import TimestampMixin, generate_uuid
 from .enums import TransactionType, TransactionStatus, Network
 
@@ -28,6 +29,7 @@ class Transaction(TimestampMixin, SQLModel, table=True):
     payment_id: Optional[str] = Field(default=None, foreign_key="payments.id")
     bill_order_id: Optional[str] = Field(default=None, foreign_key="bill_orders.id")
     onramp_order_id: Optional[str] = Field(default=None, foreign_key="onramp_orders.id")
+    offramp_order_id: Optional[str] = Field(default=None, foreign_key="offramp_orders.id")
 
     # Recipient info (for bank transfers)
     recipient_id: Optional[str] = Field(default=None)
@@ -37,3 +39,9 @@ class Transaction(TimestampMixin, SQLModel, table=True):
     blockchain_tx_hash: Optional[str] = Field(default=None)
 
     description: Optional[str] = Field(default=None)
+
+    meta_data: Optional[Dict[str, Any]] = Field(
+        default=None,
+        sa_column=Column(sa.JSON, nullable=True),
+    )
+

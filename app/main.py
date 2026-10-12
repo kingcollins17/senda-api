@@ -5,14 +5,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.auth.router import router as auth_router
 from app.users.router import router as users_router
 from app.wallets.router import router as wallets_router
-from app.quotes.router import router as quotes_router
+
 from app.payments.router import router as payments_router
-from app.recipients.router import router as recipients_router
 from app.bills.router import router as bills_router
 from app.transactions.router import router as transactions_router
 from app.notifications.router import router as notifications_router
 from app.webhooks.router import router as webhooks_router
-from app.onramp.router import router as onramp_router
+
+from app.ramp.router import router as ramp_router
+
 
 # Import all models so SQLModel metadata registers them
 import app.core.models  # noqa: F401
@@ -51,14 +52,15 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(wallets_router)
-app.include_router(quotes_router)
+
 app.include_router(payments_router)
-app.include_router(recipients_router)
 app.include_router(bills_router)
 app.include_router(transactions_router)
 app.include_router(notifications_router)
 app.include_router(webhooks_router)
-app.include_router(onramp_router)
+
+app.include_router(ramp_router)
+
 
 @app.get("/api/v1/config", tags=["config"])
 async def get_config():

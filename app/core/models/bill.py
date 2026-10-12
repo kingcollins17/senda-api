@@ -1,5 +1,6 @@
-from typing import Optional
-from sqlmodel import SQLModel, Field
+from typing import Any, Dict, Optional
+from sqlmodel import SQLModel, Field, Column
+import sqlalchemy as sa
 from .base import TimestampMixin, generate_uuid
 from .enums import BillCategory, BillOrderStatus, Network
 
@@ -32,4 +33,10 @@ class BillOrder(TimestampMixin, SQLModel, table=True):
     provider_order_id: Optional[str] = Field(default=None)
     provider_reference: Optional[str] = Field(default=None)
 
+    meta_data: Optional[Dict[str, Any]] = Field(
+        default=None,
+        sa_column=Column(sa.JSON, nullable=True),
+    )
+
     failure_reason: Optional[str] = Field(default=None)
+

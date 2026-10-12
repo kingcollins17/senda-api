@@ -69,6 +69,17 @@ class OnRampOrderStatus(str, enum.Enum):
     EXPIRED = "EXPIRED"
 
 
+class OffRampOrderStatus(str, enum.Enum):
+    CREATED = "CREATED"
+    AWAITING_CRYPTO = "AWAITING_CRYPTO"
+    CRYPTO_RECEIVED = "CRYPTO_RECEIVED"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+    EXPIRED = "EXPIRED"
+
+
 class TransactionType(str, enum.Enum):
     BANK_TRANSFER = "BANK_TRANSFER"
     AIRTIME = "AIRTIME"

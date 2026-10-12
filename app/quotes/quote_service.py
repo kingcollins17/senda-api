@@ -128,7 +128,7 @@ class QuoteServiceImpl:
         token = str(payload.get("token", payload.get("crypto_asset", self.default_token))).upper()
 
         # 4. Exchange rate and fee calculations
-        rate = self._get_exchange_rate(token=token, network=network)
+        rate = self.get_exchange_rate(token=token, network=network)
         fees = self._calculate_fees(amount_ngn=amount_ngn)
         total_fiat_amount = amount_ngn + fees["platform_fee_ngn"] + fees["provider_fee_ngn"]
         crypto_amount = self._calculate_crypto_amount(
@@ -369,7 +369,7 @@ class QuoteServiceImpl:
         if token not in ["USDC", "USDT"]:
             raise QuoteValidationError(f"Unsupported crypto token: '{token}'. Supported tokens: ['USDC', 'USDT'].")
 
-    def _get_exchange_rate(self, token: str, network: str) -> float:
+    def get_exchange_rate(self, token: str, network: str) -> float:
         """Retrieves exchange rate for token and network."""
         return self.default_rate
 
