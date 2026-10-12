@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from pydantic import NaiveDatetime
 from sqlmodel import SQLModel, Field
 from .base import TimestampMixin, generate_uuid
 from .enums import Network
@@ -24,5 +25,5 @@ class Quote(TimestampMixin, SQLModel, table=True):
 
     recipient_id: Optional[str] = Field(default=None, foreign_key="recipients.id")
 
-    expires_at: datetime = Field(nullable=False)
+    expires_at: NaiveDatetime = Field(nullable=False)
     is_expired: bool = Field(default=False)

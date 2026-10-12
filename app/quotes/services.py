@@ -114,7 +114,7 @@ class BaseQuoteService(ABC):
             token=token,
         )
 
-        quote_id = f"quote_{uuid.uuid4().hex[:12]}"
+        quote_id = f"{uuid.uuid4().hex[:12]}"
         created_at = now()
         expires_at = created_at + timedelta(seconds=self.validity_seconds)
 
@@ -155,13 +155,6 @@ class BaseQuoteService(ABC):
         }
 
         return quote_response
-
-    def get_quote_json(self, request_data: Union[Dict[str, Any], str], indent: Optional[int] = 2) -> str:
-        """
-        Convenience method to execute quote retrieval and return a formatted JSON string.
-        """
-        quote_dict = self.get_quote(request_data)
-        return json.dumps(quote_dict, indent=indent, default=str)
 
     # =========================================================================
     # Abstract Template Methods (Must be implemented by subclasses)

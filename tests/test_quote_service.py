@@ -83,12 +83,6 @@ class TestQuoteService(unittest.TestCase):
         self.assertEqual(quote["blockchain_metadata"]["chain_id"], 137)
         self.assertTrue(quote["blockchain_metadata"]["payment_uri"].startswith("ethereum:"))
 
-        # Verify JSON serializer helper
-        json_output = service.get_quote_json(json_payload)
-        parsed = json.loads(json_output)
-        self.assertTrue(parsed["quote_id"].startswith("quote_"))
-        self.assertEqual(parsed["recipient"]["account_number"], "0098765432")
-
     def test_bank_transfer_validation_errors(self):
         """Test validation errors for bank transfer quote requests."""
         service = BankTransferQuoteService()
@@ -167,26 +161,70 @@ class TestQuoteService(unittest.TestCase):
 
     def test_api_quotes_endpoint_bank_transfer(self):
         """Test POST /api/v1/quotes for bank transfer."""
+        import asyncio
         from fastapi.testclient import TestClient
+        from sqlmodel import SQLModel
+        from sqlalchemy.ext.asyncio import create_async_engine
+        from sqlmodel.ext.asyncio.session import AsyncSession
+        from sqlalchemy.pool import StaticPool
         from app.main import app
+        from app.core.database import get_session
+        from app.core.dependencies import get_user
+        from app.core.models.user import User
+        from app.core.models.enums import UserStatus, AuthProvider
 
-        client = TestClient(app)
-        res = client.post("/api/v1/quotes", json={
-            "type": "BANK_TRANSFER",
-            "amount_ngn": 25000,
-            "network": "SOLANA",
-            "recipient": {
-                "account_number": "0123456789",
-                "bank_code": "058",
-                "bank_name": "GTBank",
-                "account_name": "Test User",
-            },
-        })
-        self.assertEqual(res.status_code, 200)
-        data = res.json()
-        self.assertIn("wallet_address", data)
-        self.assertEqual(data["payment_type"], "BANK_TRANSFER")
-        self.assertEqual(data["recipient"]["account_number"], "0123456789")
+        test_engine = create_async_engine(
+            "sqlite+aiosqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+
+        async def init_db():
+            async with test_engine.begin() as conn:
+                await conn.run_sync(SQLModel.metadata.create_all)
+
+        asyncio.run(init_db())
+
+        mock_user = User(
+            id="test-user-uuid",
+            email="test@example.com",
+            name="Test User",
+            status=UserStatus.ACTIVE,
+            auth_provider=AuthProvider.NORMAL,
+            email_verified=True,
+        )
+
+        async def override_get_session():
+            async with AsyncSession(test_engine, expire_on_commit=False) as session:
+                yield session
+
+        async def override_get_user():
+            return mock_user
+
+        app.dependency_overrides[get_session] = override_get_session
+        app.dependency_overrides[get_user] = override_get_user
+
+        try:
+            client = TestClient(app)
+            res = client.post("/api/v1/quotes", json={
+                "type": "BANK_TRANSFER",
+                "amount_ngn": 25000,
+                "network": "SOLANA",
+                "recipient": {
+                    "account_number": "0123456789",
+                    "bank_code": "058",
+                    "bank_name": "GTBank",
+                    "account_name": "Test User",
+                },
+            })
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertIn("wallet_address", data)
+            self.assertEqual(data["payment_type"], "BANK_TRANSFER")
+            self.assertEqual(data["recipient"]["account_number"], "0123456789")
+        finally:
+            app.dependency_overrides.pop(get_session, None)
+            app.dependency_overrides.pop(get_user, None)
 
     def test_api_bills_quote_endpoint(self):
         """Test POST /api/v1/bills/quote for electricity."""

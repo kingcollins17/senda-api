@@ -85,3 +85,7 @@ async def get_optional_current_user(
         return await get_current_user(credentials=credentials, session=session)
     except HTTPException:
         return None
+
+
+# Alias for get_current_user to support get_user dependency injection
+get_user = get_current_user

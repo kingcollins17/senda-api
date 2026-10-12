@@ -49,6 +49,27 @@ class VerifyEmailRequest(BaseModel):
     code: Optional[str] = None
 
 
+class SendOtpRequest(BaseModel):
+    email: EmailStr
+
+
+class SendOtpResponse(BaseModel):
+    message: str
+    email: str
+
+
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp: Optional[str] = None
+    code: Optional[str] = None
+
+
+class VerifyOtpResponse(BaseModel):
+    message: str
+    email: str
+    email_verified: bool
+
+
 class UserResponse(BaseModel):
     id: str
     email: str

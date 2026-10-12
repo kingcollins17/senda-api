@@ -80,10 +80,10 @@ class TestAuthAndWallets(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res_verify.status_code, 200, res_verify.text)
         self.assertTrue(res_verify.json()["email_verified"])
 
-        # 4. Get Current User (/auth/me)
-        res_me = await self.client.get("/api/v1/auth/me", headers=auth_headers)
+        # 4. Get Current User (/users/me wrapped in BaseResponse[UserResponse])
+        res_me = await self.client.get("/api/v1/users/me", headers=auth_headers)
         self.assertEqual(res_me.status_code, 200)
-        self.assertTrue(res_me.json()["email_verified"])
+        self.assertTrue(res_me.json()["data"]["email_verified"])
 
         # 5. Login
         res_login = await self.client.post("/api/v1/auth/login", json={

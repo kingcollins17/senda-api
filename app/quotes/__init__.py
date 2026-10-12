@@ -5,6 +5,14 @@ from .services import (
     QuoteServiceFactory,
     QuoteValidationError,
 )
+from .dependencies import (
+    get_ts,
+    get_bs,
+    get_transfer_service,
+    get_bill_service,
+    transfer_service,
+    bill_service,
+)
 
 __all__ = [
     "BaseQuoteService",
@@ -12,4 +20,10 @@ __all__ = [
     "BillQuoteService",
     "QuoteServiceFactory",
     "QuoteValidationError",
+    "get_ts",
+    "get_bs",
+    "get_transfer_service",
+    "get_bill_service",
+    "transfer_service",
+    "bill_service",
 ]

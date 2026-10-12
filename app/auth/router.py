@@ -10,10 +10,14 @@ from app.auth.schemas import (
     AuthResponse,
     GoogleLoginRequest,
     RefreshTokenRequest,
+    SendOtpRequest,
+    SendOtpResponse,
     UserLoginRequest,
     UserRegisterRequest,
     UserResponse,
     VerifyEmailRequest,
+    VerifyOtpRequest,
+    VerifyOtpResponse,
 )
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
@@ -355,6 +359,87 @@ async def logout(current_user: User = Depends(get_current_user)) -> Dict[str, st
         ) from exc
 
 
+@router.post("/send-otp", response_model=SendOtpResponse)
+@router.post("/otp/send", response_model=SendOtpResponse, include_in_schema=False)
+async def send_otp(
+    payload: SendOtpRequest,
+    session: AsyncSession = Depends(get_session),
+) -> SendOtpResponse:
+    """
+    Mock send OTP to an email address for verification.
+    """
+    try:
+        statement = select(User).where(User.email == payload.email)
+        user = (await session.exec(statement)).first()
+        logger.info("Mock OTP '123456' generated for email: %s (user registered: %s)", payload.email, user is not None)
+
+        return SendOtpResponse(
+            message="OTP sent successfully to email",
+            email=str(payload.email),
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Error sending OTP: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send OTP: {str(exc)}",
+        ) from exc
+
+
+@router.post("/verify-otp", response_model=VerifyOtpResponse)
+@router.post("/otp/verify", response_model=VerifyOtpResponse, include_in_schema=False)
+async def verify_otp(
+    payload: VerifyOtpRequest,
+    session: AsyncSession = Depends(get_session),
+) -> VerifyOtpResponse:
+    """
+    Verify OTP for an email address.
+    Mocked OTP check: if OTP is '123456', marks email as verified in the database.
+    """
+    try:
+        otp_code = (payload.otp or payload.code or "").strip()
+        if not otp_code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="OTP code is required",
+            )
+
+        if otp_code != "123456":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid OTP",
+            )
+
+        statement = select(User).where(User.email == payload.email)
+        user = (await session.exec(statement)).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        if not user.email_verified:
+            user.email_verified = True
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+
+        return VerifyOtpResponse(
+            message="Email verified successfully",
+            email=user.email,
+            email_verified=True,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Error verifying OTP: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"OTP verification failed: {str(exc)}",
+        ) from exc
+
+
 @router.post("/verify-email")
 async def verify_email(
     payload: VerifyEmailRequest,
@@ -377,10 +462,16 @@ async def verify_email(
                     detail=str(exc),
                 ) from exc
         elif payload.email and payload.code:
-            if len(payload.code.strip()) < 4:
+            code_str = payload.code.strip()
+            if len(code_str) < 4:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid verification code format",
+                )
+            if code_str != "123456":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid verification code",
                 )
             statement = select(User).where(User.email == payload.email)
             user = (await session.exec(statement)).first()
@@ -422,19 +513,3 @@ async def verify_email(
             detail=f"Email verification failed: {str(exc)}",
         ) from exc
 
-
-@router.get("/me", response_model=UserResponse)
-async def get_me(current_user: User = Depends(get_current_user)) -> UserResponse:
-    """
-    Returns the profile of the currently authenticated user.
-    """
-    try:
-        return UserResponse.model_validate(current_user)
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("Error retrieving user profile: %s", exc)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve user profile: {str(exc)}",
-        ) from exc
