@@ -1,0 +1,16 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.kora.senda",
+      "sha256_cert_fingerprints": [
+        "3D:22:52:06:6E:F3:CD:86:78:90:CD:F2:98:02:79:E4:BD:0B:B6:B3:39:06:43:5C:81:E9:77:6E:C4:41:A6:97",
+        "7E:30:DD:08:F7:A2:AD:BB:D9:62:C1:DF:62:7C:9E:2A:12:E8:65:CE:3A:8A:81:69:EA:CF:41:1A:51:92:C5:C1",
+        "FE:FB:1C:7D:A5:7F:2D:2A:1B:E2:D5:CB:A1:19:91:D4:26:9C:70:88:15:1A:F7:B7:E1:D3:88:EA:65:8E:63:9F"
+      ]
+    }
+  }
+]

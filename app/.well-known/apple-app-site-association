@@ -1,0 +1,29 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "<TEAM_ID>.com.kora.senda",
+        "paths": [
+          "/app",
+          "/app/*"
+        ],
+        "components": [
+          {
+            "/": "/app/*",
+            "comment": "Matches all URL paths starting with /app"
+          },
+          {
+            "/": "/app",
+            "comment": "Matches /app"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "<TEAM_ID>.com.kora.senda"
+    ]
+  }
+}

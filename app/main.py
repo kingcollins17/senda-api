@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.auth.router import router as auth_router
 from app.users.router import router as users_router
@@ -46,6 +48,16 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# Serve .well-known directory for deep linking verification
+# Android: /.well-known/assetlinks.json
+# iOS:     /.well-known/apple-app-site-association
+well_known_dir = Path(__file__).resolve().parent / ".well-known"
+app.mount(
+    "/.well-known",
+    StaticFiles(directory=str(well_known_dir)),
+    name="well-known",
 )
 
 # Include routers
