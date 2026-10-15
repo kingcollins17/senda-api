@@ -32,10 +32,10 @@ class WalletAccountResponse(BaseModel):
 
 
 class WalletResponse(BaseModel):
-    id: str
-    user_id: str
-    provider: str
-    accounts: List[WalletAccountResponse] = []
+    id: Optional[str]
+    user_id: Optional[str]=None
+    provider: Optional[str]=None
+    accounts: Optional[List[WalletAccountResponse]] = []
     created_at: Optional[datetime] = None
 
     model_config = {

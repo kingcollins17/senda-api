@@ -7,6 +7,7 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 
 from app.core.models.enums import AuthProvider, UserStatus
+from app.wallets.schemas import WalletResponse
 
 
 class UserRegisterRequest(BaseModel):
@@ -80,6 +81,7 @@ class UserResponse(BaseModel):
     auth_provider: AuthProvider
     email_verified: bool
     created_at: Optional[datetime] = None
+    wallet: Optional[WalletResponse] = None
 
     model_config = {
         "from_attributes": True,

@@ -134,6 +134,21 @@ class TestAuthAndWallets(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(wallet_data["accounts"]), 2)
         first_account_id = wallet_data["accounts"][0]["id"]
 
+        # The user profile includes the connected wallet and all of its accounts.
+        res_me_with_wallet = await self.client.get("/api/v1/users/me", headers=new_auth_headers)
+        self.assertEqual(res_me_with_wallet.status_code, 200, res_me_with_wallet.text)
+        profile_wallet = res_me_with_wallet.json()["data"]["wallet"]
+        self.assertEqual(profile_wallet["id"], wallet_id)
+        self.assertEqual(len(profile_wallet["accounts"]), 2)
+
+        # A user cannot attach a second provider while a wallet is connected.
+        res_second_wallet = await self.client.post(
+            "/api/v1/wallets/connect",
+            json={"provider": "metamask", "accounts": []},
+            headers=new_auth_headers,
+        )
+        self.assertEqual(res_second_wallet.status_code, 409, res_second_wallet.text)
+
         # 8. Get Connected Wallets (wrapped in BaseResponse[List[WalletResponse]])
         res_get_wallets = await self.client.get("/api/v1/wallets", headers=new_auth_headers)
         self.assertEqual(res_get_wallets.status_code, 200)
@@ -141,11 +156,12 @@ class TestAuthAndWallets(unittest.IsolatedAsyncioTestCase):
         self.assertGreaterEqual(len(user_wallets), 1)
         self.assertTrue(any(w["id"] == wallet_id for w in user_wallets))
 
-        # 9. Get Specific Wallet Accounts (wrapped in BaseResponse[List[WalletAccountResponse]])
-        res_accs = await self.client.get(f"/api/v1/wallets/{wallet_id}/accounts", headers=new_auth_headers)
+        # 9. Get the user's wallet and its accounts without passing a wallet ID.
+        res_accs = await self.client.get("/api/v1/wallets/accounts", headers=new_auth_headers)
         self.assertEqual(res_accs.status_code, 200)
-        accounts_list = res_accs.json()["data"]
-        self.assertEqual(len(accounts_list), 2)
+        user_wallet = res_accs.json()["data"]
+        self.assertEqual(user_wallet["id"], wallet_id)
+        self.assertEqual(len(user_wallet["accounts"]), 2)
 
         # 10. Get Single Wallet Account (wrapped in BaseResponse[WalletAccountResponse])
         res_single_acc = await self.client.get(
@@ -158,13 +174,17 @@ class TestAuthAndWallets(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(single_acc_env["data"]["id"], first_account_id)
 
         # 11. Disconnect Wallet (wrapped in BaseResponse[Dict[str, str]])
-        res_disconnect = await self.client.delete(f"/api/v1/wallets/{wallet_id}", headers=new_auth_headers)
+        res_disconnect = await self.client.delete("/api/v1/wallets", headers=new_auth_headers)
         self.assertEqual(res_disconnect.status_code, 200)
         self.assertEqual(res_disconnect.json()["data"]["wallet_id"], wallet_id)
 
         # 12. Verify Wallet is Disconnected
         res_check_wallet = await self.client.get(f"/api/v1/wallets/{wallet_id}", headers=new_auth_headers)
         self.assertEqual(res_check_wallet.status_code, 404)
+        res_check_wallet_accounts = await self.client.get("/api/v1/wallets/accounts", headers=new_auth_headers)
+        self.assertEqual(res_check_wallet_accounts.status_code, 404)
+        res_me_after_disconnect = await self.client.get("/api/v1/users/me", headers=new_auth_headers)
+        self.assertIsNone(res_me_after_disconnect.json()["data"]["wallet"])
 
         # 13. Logout
         res_logout = await self.client.post("/api/v1/auth/logout", headers=new_auth_headers)
